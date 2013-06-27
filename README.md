@@ -39,7 +39,7 @@ To add FXBinding to your project, add this on the pom.xml
     <dependency>
         <groupId>com.dooapp</groupId>
         <artifactId>FXBinding</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1</version>
     </dependency>
 </dependencies>
 <repositories>
