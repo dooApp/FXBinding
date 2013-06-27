@@ -15,12 +15,12 @@
 
     <groupId>com.dooapp</groupId>
     <artifactId>FXBinding</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2-SNAPSHOT</version>
 	<scm>
 		<connection>scm:git:https://github.com/dooApp/FXBinding.git</connection>
 		<developerConnection>scm:git:https://github.com/dooApp/FXBinding.git</developerConnection>
 		<url>https://github.com/dooApp/FXBinding.git</url>
-  	  <tag>v0.0.1</tag>
+  	  <tag>HEAD</tag>
   </scm>
 	<dependencies>
         <dependency>
