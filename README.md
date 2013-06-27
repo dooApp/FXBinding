@@ -56,3 +56,6 @@ To add FXBinding to your project, add this on the pom.xml
      </repository>
 </repositories>
 ```
+
+
+[![Build Status](https://buildhive.cloudbees.com/job/dooApp/job/FXBinding/badge/icon)](https://buildhive.cloudbees.com/job/dooApp/job/FXBinding/)
