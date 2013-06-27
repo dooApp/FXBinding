@@ -109,6 +109,13 @@
 			</plugin>
         </plugins>
     </build>
+	<distributionManagement>
+	  <repository>
+	    <id>internal.repo</id>
+	    <name>Internal Repository</name>
+	    <url>file://${user.home}</url>
+	  </repository>
+	</distributionManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
