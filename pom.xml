@@ -18,9 +18,12 @@
     <groupId>com.dooapp</groupId>
     <artifactId>FXBinding</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-
-
-    <dependencies>
+	<scm>
+		<connection>scm:git:https://github.com/dooApp/FXBinding.git</connection>
+		<developerConnection>scm:git:https://github.com/dooApp/FXBinding.git</developerConnection>
+		<url>https://github.com/dooApp/FXBinding.git</url>
+  	</scm>
+	<dependencies>
         <dependency>
             <groupId>com.oracle</groupId>
             <artifactId>javafx</artifactId>
@@ -94,6 +97,16 @@
                     <localCheckout>true</localCheckout>
                 </configuration>
             </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+					<tagNameFormat>v@{project.version}</tagNameFormat>
+					<pushChanges>false</pushChanges>
+					<localCheckout>true</localCheckout>
+				</configuration>
+			</plugin>
         </plugins>
     </build>
     <properties>
