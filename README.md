@@ -45,7 +45,7 @@ To add FXBinding to your project, add this on the pom.xml
 <repositories>
     <repository>
         <id>fxbinding</id>
-        <url>https://github.com/dooApp/FXBinding/blob/maven/</url>
+        <url>https://raw.github.com/dooApp/FXBinding/maven/</url>
         <name>fxbinding</name>
         <releases>
             <enabled>true</enabled>
