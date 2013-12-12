@@ -39,11 +39,17 @@ public abstract class FXMapBinding<K, V> extends MapBinding<K, V> {
      */
     private ObservableList<Observable> dependencies;
     /**
+     * A nested binding
+     */
+    private MapBinding<K, V> nested;
+
+    /**
      * Create an FXMapBinding
      */
     public FXMapBinding() {
         configure();
     }
+
     /**
      * Call this method instead of {@link javafx.beans.binding.MapBinding#bind(javafx.beans.Observable...)} it will
      * automatically call
@@ -54,6 +60,7 @@ public abstract class FXMapBinding<K, V> extends MapBinding<K, V> {
     protected final void addObservable(Observable... observables) {
         getDependencies().addAll(observables);
     }
+
     /**
      * This method is called every time the binding is becoming invalid.<br>
      * Make sure you don't throw Exception, call {@link #addObservable(javafx.beans.Observable...)} to register
@@ -62,6 +69,7 @@ public abstract class FXMapBinding<K, V> extends MapBinding<K, V> {
      * @see #addObservable(javafx.beans.Observable...)
      */
     protected abstract void configure();
+
     /**
      * {@inheritDoc}
      */
@@ -69,6 +77,7 @@ public abstract class FXMapBinding<K, V> extends MapBinding<K, V> {
     public void dispose() {
         getDependencies().clear();
     }
+
     /**
      * {@inheritDoc}
      */
@@ -79,19 +88,28 @@ public abstract class FXMapBinding<K, V> extends MapBinding<K, V> {
             dependencies.addListener(new ListChangeListener<Observable>() {
                 @Override
                 public void onChanged(Change<? extends Observable> change) {
-                    while (change.next()) {
-                        for (Observable o : change.getAddedSubList()) {
-                            bind(o);
+                    nested = new MapBinding<K, V>() {
+                        {
+                            super.bind(dependencies.toArray(new Observable[dependencies.size()]));
+
                         }
-                        for (Observable o : change.getRemoved()) {
-                            unbind(o);
+
+                        @Override
+                        protected void onInvalidating() {
+                            FXMapBinding.this.invalidate();
                         }
-                    }
+
+                        @Override
+                        protected ObservableMap<K, V> computeValue() {
+                            return FXMapBinding.this.compute();
+                        }
+                    };
                 }
             });
         }
         return dependencies;
     }
+
     /**
      * {@inheritDoc}
      */
@@ -99,6 +117,7 @@ public abstract class FXMapBinding<K, V> extends MapBinding<K, V> {
     protected void onInvalidating() {
         reconfigure();
     }
+
     /**
      * Make dependencies ok
      */
@@ -106,14 +125,16 @@ public abstract class FXMapBinding<K, V> extends MapBinding<K, V> {
         getDependencies().clear();
         configure();
     }
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected final ObservableMap<K, V> computeValue() {
         reconfigure();
-        return compute();
+        return nested.get();
     }
+
     /**
      * The new {@link #computeValue()} method
      *

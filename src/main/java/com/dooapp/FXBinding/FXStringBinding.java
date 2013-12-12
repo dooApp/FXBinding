@@ -38,11 +38,17 @@ public abstract class FXStringBinding extends StringBinding {
      */
     private ObservableList<Observable> dependencies;
     /**
+     * A nested binding
+     */
+    private StringBinding nested;
+
+    /**
      * Create an FXStringBinding
      */
     public FXStringBinding() {
         configure();
     }
+
     /**
      * Call this method instead of {@link javafx.beans.binding.StringBinding#bind(javafx.beans.Observable...)} it will
      * automatically call
@@ -53,6 +59,7 @@ public abstract class FXStringBinding extends StringBinding {
     protected final void addObservable(Observable... observables) {
         getDependencies().addAll(observables);
     }
+
     /**
      * This method is called every time the binding is becoming invalid.<br>
      * Make sure you don't throw Exception, call {@link #addObservable(javafx.beans.Observable...)} to register
@@ -61,6 +68,7 @@ public abstract class FXStringBinding extends StringBinding {
      * @see #addObservable(javafx.beans.Observable...)
      */
     protected abstract void configure();
+
     /**
      * {@inheritDoc}
      */
@@ -68,6 +76,7 @@ public abstract class FXStringBinding extends StringBinding {
     public void dispose() {
         getDependencies().clear();
     }
+
     /**
      * {@inheritDoc}
      */
@@ -78,19 +87,28 @@ public abstract class FXStringBinding extends StringBinding {
             dependencies.addListener(new ListChangeListener<Observable>() {
                 @Override
                 public void onChanged(Change<? extends Observable> change) {
-                    while (change.next()) {
-                        for (Observable o : change.getAddedSubList()) {
-                            bind(o);
+                    nested = new StringBinding() {
+                        {
+                            super.bind(dependencies.toArray(new Observable[dependencies.size()]));
+
                         }
-                        for (Observable o : change.getRemoved()) {
-                            unbind(o);
+
+                        @Override
+                        protected void onInvalidating() {
+                            FXStringBinding.this.invalidate();
                         }
-                    }
+
+                        @Override
+                        protected String computeValue() {
+                            return compute();
+                        }
+                    };
                 }
             });
         }
         return dependencies;
     }
+
     /**
      * {@inheritDoc}
      */
@@ -98,6 +116,7 @@ public abstract class FXStringBinding extends StringBinding {
     protected void onInvalidating() {
         reconfigure();
     }
+
     /**
      * Make dependencies ok
      */
@@ -105,14 +124,16 @@ public abstract class FXStringBinding extends StringBinding {
         getDependencies().clear();
         configure();
     }
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected final String computeValue() {
         reconfigure();
-        return compute();
+        return nested.get();
     }
+
     /**
      * The new {@link #computeValue()} method
      *

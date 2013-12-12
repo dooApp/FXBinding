@@ -12,6 +12,7 @@
 package com.dooapp.FXBinding;
 
 import javafx.beans.Observable;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.FloatBinding;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -38,6 +39,11 @@ public abstract class FXFloatBinding extends FloatBinding {
      */
     private ObservableList<Observable> dependencies;
     /**
+     * A nested binding
+     */
+    private FloatBinding nested;
+
+    /**
      * Call this method instead of {@link javafx.beans.binding.FloatBinding#bind(javafx.beans.Observable...)} it will
      * automatically call
      * {@link javafx.beans.binding.FloatBinding#unbind(javafx.beans.Observable...)} when necessary.
@@ -47,6 +53,7 @@ public abstract class FXFloatBinding extends FloatBinding {
     protected final void addObservable(Observable... observables) {
         getDependencies().addAll(observables);
     }
+
     /**
      * This method is called every time the binding is becoming invalid.<br>
      * Make sure you don't throw Exception, call {@link #addObservable(javafx.beans.Observable...)} to register
@@ -55,6 +62,7 @@ public abstract class FXFloatBinding extends FloatBinding {
      * @see #addObservable(javafx.beans.Observable...)
      */
     protected abstract void configure();
+
     /**
      * {@inheritDoc}
      */
@@ -62,6 +70,7 @@ public abstract class FXFloatBinding extends FloatBinding {
     public void dispose() {
         getDependencies().clear();
     }
+
     /**
      * {@inheritDoc}
      */
@@ -72,19 +81,28 @@ public abstract class FXFloatBinding extends FloatBinding {
             dependencies.addListener(new ListChangeListener<Observable>() {
                 @Override
                 public void onChanged(Change<? extends Observable> change) {
-                    while (change.next()) {
-                        for (Observable o : change.getAddedSubList()) {
-                            bind(o);
+                    nested=new FloatBinding() {
+                        {
+                            super.bind(dependencies.toArray(new Observable[dependencies.size()]));
+
                         }
-                        for (Observable o : change.getRemoved()) {
-                            unbind(o);
+
+                        @Override
+                        protected void onInvalidating() {
+                            FXFloatBinding.this.invalidate();
                         }
-                    }
+
+                        @Override
+                        protected float computeValue() {
+                            return compute();
+                        }
+                    };
                 }
             });
         }
         return dependencies;
     }
+
     /**
      * {@inheritDoc}
      */
@@ -92,6 +110,7 @@ public abstract class FXFloatBinding extends FloatBinding {
     protected void onInvalidating() {
         reconfigure();
     }
+
     /**
      * Make dependencies ok
      */
@@ -99,14 +118,16 @@ public abstract class FXFloatBinding extends FloatBinding {
         getDependencies().clear();
         configure();
     }
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected final float computeValue() {
         reconfigure();
-        return compute();
+        return nested.get();
     }
+
     /**
      * The new {@link #computeValue()} method
      *

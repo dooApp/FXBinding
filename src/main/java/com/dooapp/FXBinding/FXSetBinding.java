@@ -39,11 +39,17 @@ public abstract class FXSetBinding<E> extends SetBinding<E> {
      */
     private ObservableList<Observable> dependencies;
     /**
+     * A nested binding
+     */
+    private SetBinding<E> nested;
+
+    /**
      * Create an FXSetBinding
      */
     public FXSetBinding() {
         configure();
     }
+
     /**
      * Call this method instead of {@link javafx.beans.binding.SetBinding#bind(javafx.beans.Observable...)} it will
      * automatically call
@@ -54,6 +60,7 @@ public abstract class FXSetBinding<E> extends SetBinding<E> {
     protected final void addObservable(Observable... observables) {
         getDependencies().addAll(observables);
     }
+
     /**
      * This method is called every time the binding is becoming invalid.<br>
      * Make sure you don't throw Exception, call {@link #addObservable(javafx.beans.Observable...)} to register
@@ -62,6 +69,7 @@ public abstract class FXSetBinding<E> extends SetBinding<E> {
      * @see #addObservable(javafx.beans.Observable...)
      */
     protected abstract void configure();
+
     /**
      * {@inheritDoc}
      */
@@ -69,6 +77,7 @@ public abstract class FXSetBinding<E> extends SetBinding<E> {
     public void dispose() {
         getDependencies().clear();
     }
+
     /**
      * {@inheritDoc}
      */
@@ -79,19 +88,28 @@ public abstract class FXSetBinding<E> extends SetBinding<E> {
             dependencies.addListener(new ListChangeListener<Observable>() {
                 @Override
                 public void onChanged(Change<? extends Observable> change) {
-                    while (change.next()) {
-                        for (Observable o : change.getAddedSubList()) {
-                            bind(o);
+                    nested = new SetBinding<E>() {
+                        {
+                            super.bind(dependencies.toArray(new Observable[dependencies.size()]));
+
                         }
-                        for (Observable o : change.getRemoved()) {
-                            unbind(o);
+
+                        @Override
+                        protected void onInvalidating() {
+                            FXSetBinding.this.invalidate();
                         }
-                    }
+
+                        @Override
+                        protected ObservableSet<E> computeValue() {
+                            return compute();
+                        }
+                    };
                 }
             });
         }
         return dependencies;
     }
+
     /**
      * {@inheritDoc}
      */
@@ -99,6 +117,7 @@ public abstract class FXSetBinding<E> extends SetBinding<E> {
     protected void onInvalidating() {
         reconfigure();
     }
+
     /**
      * Make dependencies ok
      */
@@ -106,14 +125,16 @@ public abstract class FXSetBinding<E> extends SetBinding<E> {
         getDependencies().clear();
         configure();
     }
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected final ObservableSet<E> computeValue() {
         reconfigure();
-        return compute();
+        return nested.get();
     }
+
     /**
      * The new {@link #computeValue()} method
      *
