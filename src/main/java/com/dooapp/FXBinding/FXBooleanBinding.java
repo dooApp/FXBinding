@@ -60,6 +60,11 @@ public abstract class FXBooleanBinding extends BooleanBinding {
      */
     private ObservableList<Observable> dependencies;
     /**
+     * A nested binding
+     */
+    private BooleanBinding nested;
+
+    /**
      * Call this method instead of {@link BooleanBinding#bind(javafx.beans.Observable...)} it will automatically call
      * {@link BooleanBinding#unbind(javafx.beans.Observable...)} when necessary.
      *
@@ -68,6 +73,7 @@ public abstract class FXBooleanBinding extends BooleanBinding {
     protected final void addObservable(Observable... observables) {
         getDependencies().addAll(observables);
     }
+
     /**
      * This method is called every time the binding is becoming invalid.<br>
      * Make sure you don't throw Exception, call {@link #addObservable(javafx.beans.Observable...)} to register
@@ -76,13 +82,38 @@ public abstract class FXBooleanBinding extends BooleanBinding {
      * @see #addObservable(javafx.beans.Observable...)
      */
     protected abstract void configure();
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void dispose() {
         getDependencies().clear();
+        nested = null;
     }
+
+    private BooleanBinding getNested() {
+        if (nested == null) {
+            nested = new BooleanBinding() {
+                {
+                    super.bind(FXBooleanBinding.this.getDependencies().toArray(new Observable[FXBooleanBinding.this.getDependencies().size()]));
+
+                }
+
+                @Override
+                protected void onInvalidating() {
+                    FXBooleanBinding.this.invalidate();
+                }
+
+                @Override
+                protected boolean computeValue() {
+                    return compute();
+                }
+            };
+        }
+        return nested;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -90,22 +121,17 @@ public abstract class FXBooleanBinding extends BooleanBinding {
     public ObservableList<Observable> getDependencies() {
         if (dependencies == null) {
             dependencies = FXCollections.observableArrayList();
+            configure();
             dependencies.addListener(new ListChangeListener<Observable>() {
                 @Override
                 public void onChanged(Change<? extends Observable> change) {
-                    while (change.next()) {
-                        for (Observable o : change.getRemoved()) {
-                            unbind(o);
-                        }
-                        for (Observable o : change.getAddedSubList()) {
-                            bind(o);
-                        }
-                    }
+                    nested = null;
                 }
             });
         }
         return dependencies;
     }
+
     /**
      * {@inheritDoc}
      */
@@ -113,6 +139,7 @@ public abstract class FXBooleanBinding extends BooleanBinding {
     protected void onInvalidating() {
         reconfigure();
     }
+
     /**
      * Make dependencies ok
      */
@@ -120,14 +147,16 @@ public abstract class FXBooleanBinding extends BooleanBinding {
         getDependencies().clear();
         configure();
     }
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected final boolean computeValue() {
         reconfigure();
-        return compute();
+        return getNested().get();
     }
+
     /**
      * The new {@link #computeValue()} method
      *

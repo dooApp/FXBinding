@@ -12,6 +12,7 @@
 package com.dooapp.FXBinding;
 
 import javafx.beans.Observable;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.DoubleBinding;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -38,6 +39,34 @@ public abstract class FXDoubleBinding extends DoubleBinding {
      */
     private ObservableList<Observable> dependencies;
     /**
+     * A nested binding
+     */
+    private DoubleBinding nested;
+
+
+    private DoubleBinding getNested(){
+        if(nested==null){
+            nested =new DoubleBinding() {
+                {
+                    super.bind(FXDoubleBinding.this.getDependencies().toArray(new Observable[FXDoubleBinding.this.getDependencies().size()]));
+
+                }
+
+                @Override
+                protected void onInvalidating() {
+                    FXDoubleBinding.this.invalidate();
+                }
+
+                @Override
+                protected double computeValue() {
+                    return compute();
+                }
+            };
+        }
+        return nested;
+    }
+
+    /**
      * Call this method instead of {@link javafx.beans.binding.DoubleBinding#bind(javafx.beans.Observable...)} it will
      * automatically call
      * {@link javafx.beans.binding.DoubleBinding#unbind(javafx.beans.Observable...)} when necessary.
@@ -47,6 +76,7 @@ public abstract class FXDoubleBinding extends DoubleBinding {
     protected final void addObservable(Observable... observables) {
         getDependencies().addAll(observables);
     }
+
     /**
      * This method is called every time the binding is becoming invalid.<br>
      * Make sure you don't throw Exception, call {@link #addObservable(javafx.beans.Observable...)} to register
@@ -55,6 +85,7 @@ public abstract class FXDoubleBinding extends DoubleBinding {
      * @see #addObservable(javafx.beans.Observable...)
      */
     protected abstract void configure();
+
     /**
      * {@inheritDoc}
      */
@@ -62,6 +93,7 @@ public abstract class FXDoubleBinding extends DoubleBinding {
     public void dispose() {
         getDependencies().clear();
     }
+
     /**
      * {@inheritDoc}
      */
@@ -72,19 +104,13 @@ public abstract class FXDoubleBinding extends DoubleBinding {
             dependencies.addListener(new ListChangeListener<Observable>() {
                 @Override
                 public void onChanged(Change<? extends Observable> change) {
-                    while (change.next()) {
-                        for (Observable o : change.getAddedSubList()) {
-                            bind(o);
-                        }
-                        for (Observable o : change.getRemoved()) {
-                            unbind(o);
-                        }
-                    }
+                    nested=null;
                 }
             });
         }
         return dependencies;
     }
+
     /**
      * {@inheritDoc}
      */
@@ -92,6 +118,7 @@ public abstract class FXDoubleBinding extends DoubleBinding {
     protected void onInvalidating() {
         reconfigure();
     }
+
     /**
      * Make dependencies ok
      */
@@ -99,14 +126,16 @@ public abstract class FXDoubleBinding extends DoubleBinding {
         getDependencies().clear();
         configure();
     }
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected final double computeValue() {
         reconfigure();
-        return compute();
+        return getNested().get();
     }
+
     /**
      * The new {@link #computeValue()} method
      *

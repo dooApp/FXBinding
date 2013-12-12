@@ -12,6 +12,7 @@
 package com.dooapp.FXBinding;
 
 import javafx.beans.Observable;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.IntegerBinding;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -37,6 +38,12 @@ public abstract class FXIntegerBinding extends IntegerBinding {
      * The dependencies list
      */
     private ObservableList<Observable> dependencies;
+    /**
+     * A nested binding
+     */
+
+    private IntegerBinding nested;
+
     /**
      * Call this method instead of {@link javafx.beans.binding.IntegerBinding#bind(javafx.beans.Observable...)} it will
      * automatically call
@@ -72,14 +79,22 @@ public abstract class FXIntegerBinding extends IntegerBinding {
             dependencies.addListener(new ListChangeListener<Observable>() {
                 @Override
                 public void onChanged(Change<? extends Observable> change) {
-                    while (change.next()) {
-                        for (Observable o : change.getAddedSubList()) {
-                            bind(o);
+                    nested=new IntegerBinding() {
+                        {
+                            super.bind(dependencies.toArray(new Observable[dependencies.size()]));
+
                         }
-                        for (Observable o : change.getRemoved()) {
-                            unbind(o);
+
+                        @Override
+                        protected void onInvalidating() {
+                            FXIntegerBinding.this.invalidate();
                         }
-                    }
+
+                        @Override
+                        protected int computeValue() {
+                            return compute();
+                        }
+                    };
                 }
             });
         }
@@ -105,7 +120,7 @@ public abstract class FXIntegerBinding extends IntegerBinding {
     @Override
     protected final int computeValue() {
         reconfigure();
-        return compute();
+        return nested.get();
     }
     /**
      * The new {@link #computeValue()} method

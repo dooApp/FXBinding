@@ -12,6 +12,7 @@
 package com.dooapp.FXBinding;
 
 import javafx.beans.Observable;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.ListBinding;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -37,6 +38,34 @@ public abstract class FXListBinding<E> extends ListBinding<E> {
      * The dependencies list
      */
     private ObservableList<Observable> dependencies;
+    /**
+     * A nested binding
+     */
+
+    private ListBinding<E> nested;
+
+    private ListBinding<E> getNested(){
+        if(nested==null){
+            nested=new ListBinding<E>() {
+                {
+                    super.bind(FXListBinding.this.getDependencies().toArray(new Observable[FXListBinding.this.getDependencies().size()]));
+
+                }
+
+                @Override
+                protected void onInvalidating() {
+                    FXListBinding.this.invalidate();
+                }
+
+                @Override
+                protected ObservableList<E> computeValue() {
+                    return compute();
+                }
+            };
+        }
+        return nested;
+    }
+
     /**
      * Call this method instead of {@link javafx.beans.binding.ListBinding#bind(javafx.beans.Observable...)} it will
      * automatically call
@@ -68,20 +97,15 @@ public abstract class FXListBinding<E> extends ListBinding<E> {
     @Override
     public ObservableList<Observable> getDependencies() {
         if (dependencies == null) {
-            dependencies = FXCollections.observableArrayList();
-            dependencies.addListener(new ListChangeListener<Observable>() {
-                @Override
-                public void onChanged(Change<? extends Observable> change) {
-                    while (change.next()) {
-                        for (Observable o : change.getAddedSubList()) {
-                            bind(o);
-                        }
-                        for (Observable o : change.getRemoved()) {
-                            unbind(o);
-                        }
+            if (dependencies == null) {
+                dependencies = FXCollections.observableArrayList();
+                dependencies.addListener(new ListChangeListener<Observable>() {
+                    @Override
+                    public void onChanged(Change<? extends Observable> change) {
+                        nested=null;
                     }
-                }
-            });
+                });
+            }
         }
         return dependencies;
     }
@@ -105,7 +129,7 @@ public abstract class FXListBinding<E> extends ListBinding<E> {
     @Override
     protected final ObservableList<E> computeValue() {
         reconfigure();
-        return compute();
+        return getNested().get();
     }
     /**
      * The new {@link #computeValue()} method

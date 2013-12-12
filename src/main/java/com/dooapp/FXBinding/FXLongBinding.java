@@ -12,6 +12,7 @@
 package com.dooapp.FXBinding;
 
 import javafx.beans.Observable;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.LongBinding;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -38,11 +39,17 @@ public abstract class FXLongBinding extends LongBinding {
      */
     private ObservableList<Observable> dependencies;
     /**
+     * A nested binding
+     */
+    private LongBinding nested;
+
+    /**
      * Create an FXLongBinding
      */
     public FXLongBinding() {
         configure();
     }
+
     /**
      * Call this method instead of {@link javafx.beans.binding.LongBinding#bind(javafx.beans.Observable...)} it will
      * automatically call
@@ -53,6 +60,7 @@ public abstract class FXLongBinding extends LongBinding {
     protected final void addObservable(Observable... observables) {
         getDependencies().addAll(observables);
     }
+
     /**
      * This method is called every time the binding is becoming invalid.<br>
      * Make sure you don't throw Exception, call {@link #addObservable(javafx.beans.Observable...)} to register
@@ -61,6 +69,7 @@ public abstract class FXLongBinding extends LongBinding {
      * @see #addObservable(javafx.beans.Observable...)
      */
     protected abstract void configure();
+
     /**
      * {@inheritDoc}
      */
@@ -68,6 +77,7 @@ public abstract class FXLongBinding extends LongBinding {
     public void dispose() {
         getDependencies().clear();
     }
+
     /**
      * {@inheritDoc}
      */
@@ -78,19 +88,28 @@ public abstract class FXLongBinding extends LongBinding {
             dependencies.addListener(new ListChangeListener<Observable>() {
                 @Override
                 public void onChanged(Change<? extends Observable> change) {
-                    while (change.next()) {
-                        for (Observable o : change.getAddedSubList()) {
-                            bind(o);
+                    nested=new LongBinding() {
+                        {
+                            super.bind(dependencies.toArray(new Observable[dependencies.size()]));
+
                         }
-                        for (Observable o : change.getRemoved()) {
-                            unbind(o);
+
+                        @Override
+                        protected void onInvalidating() {
+                            FXLongBinding.this.invalidate();
                         }
-                    }
+
+                        @Override
+                        protected long computeValue() {
+                            return compute();
+                        }
+                    };
                 }
             });
         }
         return dependencies;
     }
+
     /**
      * {@inheritDoc}
      */
@@ -98,6 +117,7 @@ public abstract class FXLongBinding extends LongBinding {
     protected void onInvalidating() {
         reconfigure();
     }
+
     /**
      * Make dependencies ok
      */
@@ -105,14 +125,16 @@ public abstract class FXLongBinding extends LongBinding {
         getDependencies().clear();
         configure();
     }
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected final long computeValue() {
         reconfigure();
-        return compute();
+        return nested.get();
     }
+
     /**
      * The new {@link #computeValue()} method
      *
